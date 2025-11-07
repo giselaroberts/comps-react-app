@@ -1,0 +1,63 @@
+.home {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #1300b3;
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.chord-buttons {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 0;
+  width: 100%;
+  height: 100%;
+  padding: 2rem;
+  box-sizing: border-box;
+}
+
+.chord-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  text-decoration: none;
+  text-align: center;
+  font-weight: 500;
+  font-size: 4rem;
+  transition: color 0.25s;
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+}
+
+/* Major chord buttons - pink */
+.chord-button-major {
+  color: #ff86c7;
+}
+
+/* Minor chord buttons - yellow */
+.chord-button-minor {
+  color: #ffff6a;
+}
+
+/* 7th chord buttons - green */
+.chord-button-seventh {
+  color: #54ff7b;
+}
+
+.chord-button:hover {
+  color: #dcdbff;
+}
+
+.chord-button:active {
+  color: #dcdbff;
+  opacity: 0.8;
+}
+
