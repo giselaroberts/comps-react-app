@@ -13,7 +13,7 @@
 .chord-selection-page h1 {
   margin: 0;
   font-size: 4rem;
-  color: white;
+  color: #1300b3;
 }
 
 .mode-buttons {
@@ -23,13 +23,13 @@
 
 .mode-button {
   display: inline-block;
-  padding: 1rem 2rem;
-  background-color: white;
-  color: #1300b3;
+  padding: 2rem 5rem;
+  background-color: #1300b3;
+  color: white;
   text-decoration: none;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 1.5rem;
+  border-radius: 50px;
+  font-weight: 300;
+  font-size: 4rem;
   transition: transform 0.25s, opacity 0.25s;
 }
 

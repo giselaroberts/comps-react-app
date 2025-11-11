@@ -2,6 +2,7 @@ import { Link, useParams } from 'react-router-dom';
 import { useGuitarDetection } from '../hooks/useGuitarDetection';
 import './PlayPage.css';
 
+
 export default function PlayPage() {
   const { chordName } = useParams();
   const {

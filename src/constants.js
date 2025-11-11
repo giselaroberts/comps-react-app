@@ -20,16 +20,15 @@ export const CHORD_NOTES = {
   'G7': ['G', 'B', 'D', 'F']
 };
 
-// data/chordShapes.js
 export const CHORD_SHAPES = {
   C: {
     dots: [
-      { string: 2, fret: 1},
-      { string: 4, fret: 2},
-      { string: 5, fret: 3},
-      { string: 1, open: true },
-      { string: 3, open: true },
-      { string: 6, muted: true },
+      { string: 1, muted: true},
+      { string: 2, fret: 3},
+      { string: 3, fret: 2},
+      { string: 4, open: true },
+      { string: 5, fret: 1 },
+      { string: 6, open: true },
     ],
   },
   D: {
@@ -74,10 +73,12 @@ export const CHORD_SHAPES = {
   },
   F: {
     dots: [
-      { string: 3, fret: 2},
-      { string: 4, fret: 3},
+      { string: 1, muted: true},
+      { string: 2, muted: true},
+      { string: 3, fret: 3},
+      { string: 4, fret: 2},
     ],
-    barre: { fret: 1, fromString: 1, toString: 6 },
+    barre: { fret: 1, fromString: 5, toString: 6 },
   },
   Am: {
     dots: [
