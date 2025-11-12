@@ -155,6 +155,8 @@ function getStringPosition(freq) {
 
   // Analyze audio - detect onsets and record notes
   const analyzeAudio = () => {
+    //dubugging.... this shows up in console, meaning requestAnimationFrame(analyzeAudio) call is happening :):check
+    //console.log("Analyzing frame...");
     const currentIndex = currentStringIndexRef.current;  // Use ref value
     
     if (!analyserRef.current || !essentiaRef.current || currentIndex >= 6) {
@@ -182,7 +184,11 @@ function getStringPosition(freq) {
       sumSquares += audioFrame[i] * audioFrame[i];
     }
     const rms = Math.sqrt(sumSquares / audioFrame.length);
-    const energyThreshold = 0.01; // Adjust this threshold as needed
+    //debugging thresholdd
+    //TODO: delete below two lines, experiment with different thresholds
+    //console.log("RMS:", rms);
+    const energyThreshold = 0.002;
+    //const energyThreshold = 0.01; // Adjust this threshold as needed
     
     // Check if there's significant energy (note being played)
     if (rms > energyThreshold) {
@@ -194,6 +200,9 @@ function getStringPosition(freq) {
         // Detect pitch using PitchYin - pass as regular array
         const audioVector = essentiaRef.current.arrayToVector(dataArray);
         const pitchDetection = essentiaRef.current.PitchYin(audioVector);
+        //TODO: delete below two lines
+        console.log("Running PitchYin...");
+        console.log("PitchYin result:", pitchDetection);
         
         if (pitchDetection && pitchDetection.pitch > 0) {
           const detectedFreq = pitchDetection.pitch;
@@ -318,7 +327,6 @@ function getStringPosition(freq) {
       stopRecording();
     };
   }, []);
-
   return {
     isRecording,
     currentStringIndex,
