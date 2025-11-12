@@ -1,5 +1,7 @@
 import { Link, useParams } from 'react-router-dom';
 import './ChordSelectionPage.css';
+import HomeArrow from '/Users/giselaroberts/comps-react-app/src/assets/HomeArrow.png';
+
 
 export default function ChordSelectionPage() {
   const { chordName } = useParams();

@@ -1,5 +1,6 @@
 import { Link, Outlet, useParams, useLocation } from 'react-router-dom';
 import './ChordLayout.css';
+import HomeArrow from '/Users/giselaroberts/comps-react-app/src/assets/HomeArrow.png';
 
 export default function ChordLayout() {
   const { chordName } = useParams();
@@ -17,7 +18,10 @@ export default function ChordLayout() {
   
   return (
     <div className="chord-layout" style={{ backgroundColor }}>
-      {!isLearnOrPlayPage && <Link to="/" className="back-link">← Back to Home</Link>}
+      {!isLearnOrPlayPage && (
+              <Link to="/" className="back-link"><img src = {HomeArrow} alt = 'Back to Home' className = 'home-arrow'/></Link>
+
+      )}
       {/* Outlet renders the nested route (Selection, Learn, or Play) */}
       <Outlet />
     </div>

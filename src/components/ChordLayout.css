@@ -52,3 +52,23 @@
   transform: translateY(0);
 }
 
+.chord-layout .back-link {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  color: #dcdbff;
+  text-decoration: none;
+  font-size: large;
+  font-weight: 500;
+  transition: opacity 0.25s;
+}
+
+.chord-layout .back-link:hover {
+  opacity: 0.8;
+}
+
+.home-arrow{
+  width: 300px;
+  height: auto;
+}
+
