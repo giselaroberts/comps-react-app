@@ -6,15 +6,15 @@ export const BASIC_CHORDS = [
 
 // Chord definitions: notes that should be in each chord (without octave)
 export const CHORD_NOTES = {
-  'C': ['C', 'E', 'G'],
-  'D': ['D', 'F#', 'A'],
-  'E': ['E', 'G#', 'B'],
-  'F': ['F', 'A', 'C'],
-  'G': ['G', 'B', 'D'],
-  'A': ['A', 'C#', 'E'],
-  'Am': ['A', 'C', 'E'],
-  'Dm': ['D', 'F', 'A'],
   'Em': ['E', 'G', 'B'],
+  'E': ['E', 'G#', 'B'],
+  'Am': ['A', 'C', 'E'],
+  'C': ['C', 'E', 'G'],
+  'A': ['A', 'C#', 'E'],
+  'G': ['G', 'B', 'D'],
+  'D': ['D', 'F#', 'A'],
+  'Dm': ['D', 'F', 'A'],
+  'F': ['F', 'A', 'C'],
   'Fm': ['F', 'G#', 'C'],
   'C7': ['C', 'E', 'G', 'Bb'],
   'G7': ['G', 'B', 'D', 'F']

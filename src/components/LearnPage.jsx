@@ -10,7 +10,7 @@ export default function LearnPage() {
   
   return (
     <div className="learn-page">
-      <Link to="/" className="back-link">← Home</Link>
+      <Link to="/" className="back-link"></Link>
       <h2>Learn: {chordName}</h2>
       
       
