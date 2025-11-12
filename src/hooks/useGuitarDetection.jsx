@@ -192,7 +192,8 @@ function getStringPosition(freq) {
         silenceStartTimeRef.current = null;
         
         // Detect pitch using PitchYin - pass as regular array
-        const pitchDetection = essentiaRef.current.PitchYin(audioFrame);
+        const audioVector = essentiaRef.current.arrayToVector(dataArray);
+        const pitchDetection = essentiaRef.current.PitchYin(audioVector);
         
         if (pitchDetection && pitchDetection.pitch > 0) {
           const detectedFreq = pitchDetection.pitch;
