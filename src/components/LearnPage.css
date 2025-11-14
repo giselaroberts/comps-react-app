@@ -52,11 +52,13 @@
 }
 
 .home-arrow{
+  margin-left: -60px;
   width: 300px;
   height: auto;
 }
 
 .play-arrow{
+  margin-right: -60px;
   width: 300px;
   height: auto;
 }

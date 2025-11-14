@@ -50,11 +50,13 @@
 }
 
 .home-arrow{
+  margin-left: -60px;
   width: 300px;
   height: auto;
 }
 
 .learn-arrow{
+  margin-left:-60px;
   width: 300px;
   height: auto;
 }
