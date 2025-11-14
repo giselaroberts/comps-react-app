@@ -1,6 +1,7 @@
 import { Link, useParams } from 'react-router-dom';
 import { useGuitarDetection } from '../hooks/useGuitarDetection';
 import './PlayPage.css';
+import GuitarTab from './GuitarTab';
 import HomeArrow from '/Users/giselaroberts/comps-react-app/src/assets/HomeArrow.png';
 import PlayArrow from '/Users/giselaroberts/comps-react-app/src/assets/PlayArrow.png';
 import LearnArrow from '/Users/giselaroberts/comps-react-app/src/assets/LearnArrow.png';
@@ -32,10 +33,12 @@ export default function PlayPage() {
   return (
     <div className="play-page">
       <h2>Play: {chordName}</h2>
+
       <Link to="/" className="back-link"><img src = {HomeArrow} alt = 'Back to Home' className = 'home-arrow'/></Link>
       <Link to={`/chord/${chordName}/learn`} className="learn-link"><img src = {LearnArrow} alt = 'to Learn' className = 'learn-arrow'/></Link>
 
-      
+
+
       <div className="recording-controls">
         {!isRecording ? (
           <button onClick={startRecording} className="record-button">

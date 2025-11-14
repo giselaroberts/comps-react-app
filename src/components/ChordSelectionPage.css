@@ -26,7 +26,8 @@
 }
 
 .mode-button {
-  display: inline-block;
+  display: flex;
+  /*was display: inline-block*/
   padding: 5rem 10rem;
   background-color: #1300b3;
   color: white;
