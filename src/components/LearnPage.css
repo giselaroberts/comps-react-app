@@ -32,7 +32,22 @@
   transition: opacity 0.25s;
 }
 
+.learn-page .play-link{
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  color: #dcdbff;
+  text-decoration: none;
+  font-size: large;
+  font-weight: 500;
+  transition: opacity 0.25s;
+}
+
 .learn-page .back-link:hover {
+  opacity: 0.8;
+}
+
+.learn-page .play-link:hover {
   opacity: 0.8;
 }
 
@@ -40,4 +55,10 @@
   width: 300px;
   height: auto;
 }
+
+.play-arrow{
+  width: 300px;
+  height: auto;
+}
+
 

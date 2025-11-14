@@ -4,6 +4,9 @@ import GuitarTab from './GuitarTab';
 import ChordOverlay from './ChordOverlay.jsx';
 import { CHORD_SHAPES } from '/Users/giselaroberts/comps-react-app/src/constants.js';
 import HomeArrow from '/Users/giselaroberts/comps-react-app/src/assets/HomeArrow.png';
+import PlayArrow from '/Users/giselaroberts/comps-react-app/src/assets/PlayArrow.png';
+import LearnArrow from '/Users/giselaroberts/comps-react-app/src/assets/LearnArrow.png';
+
 
 export default function LearnPage() {
   const { chordName } = useParams();
@@ -12,10 +15,10 @@ export default function LearnPage() {
 
   return (
     <div className="learn-page">
-      <Link to="/" className="back-link"><img src = {HomeArrow} alt = 'Back to Home' className = 'home-arrow'/></Link>
-
       <h2>Learn: {chordName}</h2>
-      
+      <Link to="/" className="back-link"><img src = {HomeArrow} alt = 'Back to Home' className = 'home-arrow'/></Link>      
+      <Link to={`/chord/${chordName}/play`} className="play-link"><img src = {PlayArrow} alt = 'to Play' className = 'play-arrow'/></Link>      
+
       
       <GuitarTab width={460} height={525}>
         {shape ? (

@@ -1,6 +1,8 @@
 import { Link, Outlet, useParams, useLocation } from 'react-router-dom';
 import './ChordLayout.css';
 import HomeArrow from '/Users/giselaroberts/comps-react-app/src/assets/HomeArrow.png';
+import PlayArrow from '/Users/giselaroberts/comps-react-app/src/assets/PlayArrow.png';
+import LearnArrow from '/Users/giselaroberts/comps-react-app/src/assets/LearnArrow.png';
 
 export default function ChordLayout() {
   const { chordName } = useParams();
@@ -14,6 +16,7 @@ export default function ChordLayout() {
   
   // Only apply chord color background if NOT on learn or play pages
   const isLearnOrPlayPage = location.pathname.includes('/learn') || location.pathname.includes('/play');
+ // const isNotHomePage = location.pathname.includes('/learn') || location.pathname.includes('/play')||location.pathname.includes('/chord');
   const backgroundColor = isLearnOrPlayPage ? 'transparent' : getChordBackgroundColor(chordName);
   
   return (

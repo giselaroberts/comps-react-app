@@ -3,7 +3,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 2rem;
+  padding: 1rem;
   width: 100vw;
   min-height: 100vh;
   box-sizing: border-box;
@@ -23,8 +23,18 @@
 
 .play-page .back-link {
   position: absolute;
-  top: 2rem;
-  left: 2rem;
+  top: 1rem;
+  left: 1rem;
+  color: #1b00c2;
+  text-decoration: none;
+  font-weight: 500;
+  transition: opacity 0.25s;
+}
+
+.play-page .learn-link {
+  position: absolute;
+  top: 9rem;
+  left: 1rem;
   color: #1b00c2;
   text-decoration: none;
   font-weight: 500;
@@ -33,5 +43,19 @@
 
 .play-page .back-link:hover {
   opacity: 0.8;
+}
+
+.play-page .learn-link:hover {
+  opacity: 0.8;
+}
+
+.home-arrow{
+  width: 300px;
+  height: auto;
+}
+
+.learn-arrow{
+  width: 300px;
+  height: auto;
 }
 

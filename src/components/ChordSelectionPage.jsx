@@ -16,7 +16,6 @@ export default function ChordSelectionPage() {
 
   return (
     <div className="chord-selection-page">
-      <h1>{chordName}</h1>
       <div className="mode-buttons">
         <Link to={`/chord/${chordName}/learn`} className="mode-button" style={{ color: textColor }}>
           Learn
@@ -24,6 +23,7 @@ export default function ChordSelectionPage() {
         <Link to={`/chord/${chordName}/play`} className="mode-button" style={{ color: textColor }}>
           Play
         </Link>
+        <h1>{chordName}</h1>
       </div>
     </div>
   );
