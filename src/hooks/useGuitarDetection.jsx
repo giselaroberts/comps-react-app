@@ -19,43 +19,50 @@ const GUITAR_STRING_FREQS = {
 
 // Convert frequency to note name (without octave)
 function frequencyToNoteName(freq) {
+    if(!freq) return null;
     const A4 = 440;
-    const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-    
-    if (freq === 0) return null;
-    
-    const semitones = Math.round(12 * Math.log2(freq / A4));
-    const noteIndex = ((semitones % 12) + 12) % 12;
+    const names = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+        
+    const semis = Math.round(12 * Math.log2(freq / A4));
+    const idx = ((semis % 12) + 12) % 12;
   
-  return noteNames[noteIndex];  // Returns just "C", "E", "G#", etc. (no octave)
+  return names[idx];  // Returns just "C", "E", "G#", etc. (no octave)
 }
 
 // Get which string position a frequency matches
-function getStringPosition(freq) {
-    if (!freq || freq === 0) return null;
+function detectString(rawFreq) {
+    if (!rawFreq) return null;
     
-    let closestString = null;
-    let minDiff = Infinity;
+    //correct for my micriohone buas (about -9%)
+    const freq = rawFreq / 0.915;
+    // Try raw frequency and harmonics
+    const candidates = [freq, freq / 2, freq / 4];
+
+    for (const f of candidates) {
+      let best = null;
+      let minDiff = Infinity;
+
     
-    for (const [stringName, stringFreq] of Object.entries(GUITAR_STRING_FREQS)) {
-      const diff = Math.abs(freq - stringFreq);
+    for (const [stringName, baseFreq] of Object.entries(GUITAR_STRING_FREQS)) {
+      const diff = Math.abs(freq - baseFreq);
       if (diff < minDiff) {
         minDiff = diff;
-        closestString = stringName;
+        best = stringName;
       }
     }
     
     // Only return if within reasonable range (within 50 cents)
-    const cents = 1200 * Math.log2(freq / GUITAR_STRING_FREQS[closestString]);
-    if (Math.abs(cents) < 50) {
-      return closestString;
+    const cents = 1200 * Math.log2(freq / GUITAR_STRING_FREQS[best]);
+    if (Math.abs(cents) < 120) {
+      return best;
     }
+  }
     
     return null;
   }
 
 
-  export function useGuitarDetection(expectedChord) {
+export function useGuitarDetection(expectedChord, onStringDetected) {
     const [isRecording, setIsRecording] = useState(false);
     const [currentStringIndex, setCurrentStringIndex] = useState(0);  // Which string to play next (0-5)
     const [recordedNotes, setRecordedNotes] = useState({});  // { E_low: 'E', A: 'A', ... }
@@ -69,7 +76,8 @@ function getStringPosition(freq) {
     const streamRef = useRef(null);  // Add ref for stream cleanup
     const animationFrameRef = useRef(null);
     const essentiaRef = useRef(null);
-    const lastOnsetTimeRef = useRef(0);
+    const lastOnsetRef = useRef(0);
+    const rafRef = useRef(null);
     const silenceStartTimeRef = useRef(null);
     const currentStringIndexRef = useRef(0);  // Add ref to track current string index
   
@@ -77,7 +85,7 @@ function getStringPosition(freq) {
     useEffect(() => {
         let mounted = true;
         
-        async function initEssentia() {
+        async function load() {
           try {
             // Dynamically import Essentia modules
             if (!Essentia || !EssentiaWASM) {
@@ -123,13 +131,136 @@ function getStringPosition(freq) {
           }
         }
         
-        initEssentia();
+        load();
         
         return () => {
           mounted = false;
         };
       }, []);
 
+      // ANALYZE LOOP
+      const analyze = () => {
+        const analyser = analyserRef.current;
+        const essentia = essentiaRef.current;
+
+        if (!analyser || !essentia || currentStringIndex >= 6) return;
+
+        const buffer = new Float32Array(analyser.frequencyBinCount);
+        analyser.getFloatTimeDomainData(buffer);
+
+
+          // Onset detection (simple RMS)
+    let sum = 0;
+    buffer.forEach((v) => (sum += v * v));
+    const rms = Math.sqrt(sum / buffer.length);
+    const now = performance.now();
+
+    if (rms > 0.012 && now - lastOnsetRef.current > 300) {
+      //debigging:
+      //console.log("RMS:", rms); checked, rms is always > .012 so this is not the issue
+      lastOnsetRef.current = now;
+
+      const vector = essentia.arrayToVector(buffer);
+      const { pitch, pitchConfidence } = essentia.PitchYin(vector);
+
+      if (pitch > 0 && pitchConfidence > 0.6) {
+        const note = frequencyToNoteName(pitch);
+        const closestString = detectString(pitch);
+        //debugging:
+        console.log("Detected pitch:", pitch, "closest string:", closestString);
+
+
+        const expectedString = GUITAR_STRINGS[currentStringIndex];
+        const expectedNotes = CHORD_NOTES[expectedChord];
+
+        const isCorrectString = closestString === expectedString;
+        const isCorrectNote = expectedNotes.includes(note);
+
+        // ➜ Send result back to PlayPage
+        onStringDetected({
+          stringName: expectedString,
+          noteName: note,
+          detectedFreq: pitch,
+          isCorrectString,
+          isCorrectNote,
+        });
+
+        // Save for summary text
+        setRecordedNotes((prev) => ({
+          ...prev,
+          [expectedString]: note,
+        }));
+
+        // Advance even if wrong
+        setCurrentStringIndex((i) => i + 1);
+
+        // Check chord when finished
+        if (currentStringIndex + 1 === 6) {
+          const allCorrect = Object.values(recordedNotes).every((n) =>
+            expectedNotes.includes(n)
+          );
+          setIsChordCorrect(allCorrect);
+        }
+      }
+    }
+
+    rafRef.current = requestAnimationFrame(analyze);
+  };
+
+  const startRecording = async () => {
+    try {
+      setError(null);
+      setRecordedNotes({});
+      setIsChordCorrect(null);
+      setCurrentStringIndex(0);
+
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+
+      const ctx = new AudioContext();
+      audioContextRef.current = ctx;
+
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 2048;
+      analyserRef.current = analyser;
+
+      const src = ctx.createMediaStreamSource(stream);
+      src.connect(analyser);
+
+      setIsRecording(true);
+      analyze();
+
+    } catch (err) {
+      setError("Microphone access denied.");
+    }
+  };
+
+  const stopRecording = () => {
+    cancelAnimationFrame(rafRef.current);
+
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+    }
+    if (audioContextRef.current) {
+      audioContextRef.current.close();
+    }
+
+    setIsRecording(false);
+  };
+
+  useEffect(() => stopRecording, []);
+
+  return {
+    isRecording,
+    currentStringIndex,
+    recordedNotes,
+    isChordCorrect,
+    error,
+    startRecording,
+    stopRecording,
+  };
+}
+/*
   // Check if recorded notes match expected chord (moved inside component)
   const checkChord = () => {
     if (!expectedChord || !CHORD_NOTES[expectedChord]) {
@@ -212,7 +343,9 @@ function getStringPosition(freq) {
           // Check if this matches the current string we're waiting for
           const expectedString = GUITAR_STRINGS[currentIndex];
           
-          if (stringPosition === expectedString && noteName) {
+          
+          
+          /*if (stringPosition === expectedString && noteName) {
             // Record the note for this string
             setRecordedNotes(prev => ({
               ...prev,
@@ -232,7 +365,29 @@ function getStringPosition(freq) {
             
             // Reset silence timer
             silenceStartTimeRef.current = null;
+          }*/
+            /*if (noteName) {
+              const expectedNote = CHORD_NOTES[expectedChord]; // e.g. ['C', 'E', 'G']
+          
+              const isNoteInChord = expectedNote.includes(noteName);
+              const isCorrectString = stringPosition === expectedString;
+          
+              // Emit detection to UI
+              onStringDetected({
+                  stringName: expectedString,
+                  detectedFreq,
+                  noteName,
+                  stringPosition,
+                  isCorrectString,
+                  isCorrectNote: isNoteInChord
+              });
+          
+              // Now advance even if wrong
+              const nextIndex = currentIndex + 1;
+              currentStringIndexRef.current = nextIndex;
+              setCurrentStringIndex(nextIndex);
           }
+          
         }
       }
     } else {
@@ -344,4 +499,4 @@ function getStringPosition(freq) {
       setIsChordCorrect(null);
     }
   };
-}
+}*/

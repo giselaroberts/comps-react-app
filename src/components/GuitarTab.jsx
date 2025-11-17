@@ -33,7 +33,7 @@ export default function GuitarTab({ width=458, height=574, thin=3, nut=15, child
   const fretGap = innerH / (FRETS - 1);
 
   const line = (p) => <line {...p} stroke="black" fill="none" vectorEffect="non-scaling-stroke" />;
-
+  const stringOrder = ["E_low", "A", "D", "G", "B", "E_high"];
   return (
     <svg xmlns="http://www.w3.org/2000/svg"
          viewBox={`0 0 ${TAB_VIEWBOX.w} ${TAB_VIEWBOX.h}`}

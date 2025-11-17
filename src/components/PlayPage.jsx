@@ -5,10 +5,42 @@ import GuitarTab from './GuitarTab';
 import HomeArrow from '/Users/giselaroberts/comps-react-app/src/assets/HomeArrow.png';
 import PlayArrow from '/Users/giselaroberts/comps-react-app/src/assets/PlayArrow.png';
 import LearnArrow from '/Users/giselaroberts/comps-react-app/src/assets/LearnArrow.png';
+import PlayOverlay from './PlayOverlay';
+import { useState } from "react";
 
 
 export default function PlayPage() {
   const { chordName } = useParams();
+
+  // ⭐ NEW CODE START — per-string visual results
+  const [stringResults, setStringResults] = useState({
+    E_low: null,
+    A: null,
+    D: null,
+    G: null,
+    B: null,
+    E_high: null
+  });
+
+  const handleStringDetected = (result) => {
+    const { stringName, detectedFreq, noteName, isCorrectString, isCorrectNote } = result;
+
+    setStringResults(prev => ({
+      ...prev,
+      [stringName]: {
+        detectedFreq,
+        noteName,
+        isCorrectString,
+        isCorrectNote,
+        isOverallCorrect: isCorrectString && isCorrectNote
+      }
+    }));
+  };
+  // ⭐ NEW CODE END
+
+
+
+  // NOTE: We now pass the callback into the hook
   const {
     isRecording,
     currentStringIndex,
@@ -19,8 +51,11 @@ export default function PlayPage() {
     startRecording,
     stopRecording,
     reset
-  } = useGuitarDetection(chordName);
-  
+  } = useGuitarDetection(chordName, handleStringDetected); 
+  // ⭐ ← The NEW second argument
+
+
+
   const stringLabels = {
     'E_low': 'Low E (6th)',
     'A': 'A (5th)',
@@ -29,14 +64,19 @@ export default function PlayPage() {
     'B': 'B (2nd)',
     'E_high': 'High E (1st)'
   };
-  
+ 
   return (
     <div className="play-page">
       <h2>Play: {chordName}</h2>
 
-      <Link to="/" className="back-link"><img src = {HomeArrow} alt = 'Back to Home' className = 'home-arrow'/></Link>
-      <Link to={`/chord/${chordName}/learn`} className="learn-link"><img src = {LearnArrow} alt = 'to Learn' className = 'learn-arrow'/></Link>
+      <Link to="/" className="back-link"><img src={HomeArrow} alt="Back" className="home-arrow"/></Link>
+      <Link to={`/chord/${chordName}/learn`} className="learn-link"><img src={LearnArrow} alt="to Learn" className="learn-arrow"/></Link>
 
+
+      <GuitarTab width={460} height={525}>
+        <PlayOverlay stringResults={stringResults} />
+      </GuitarTab>
+ 
 
 
       <div className="recording-controls">
@@ -70,7 +110,7 @@ export default function PlayPage() {
                   idx === currentStringIndex ? 'current' : 
                   'pending'
                 }`}
-                >
+              >
                 <span className="string-label">{stringLabels[str]}</span>
                 {recordedNotes[str] && (
                   <span className="detected-note">{recordedNotes[str]}</span>
