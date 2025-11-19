@@ -18,16 +18,35 @@ const GUITAR_STRING_FREQS = {
   };
 
 // Convert frequency to note name and octave
+// Finds the closest note by comparing to actual frequencies
 function frequencyToNote(freq) {
     if(!freq) return null;
     const A4 = 440;
     const names = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-        
-    const semis = Math.round(12 * Math.log2(freq / A4));
-    const octave = 4 + Math.floor(semis / 12);
-    const idx = ((semis % 12) + 12) % 12;
-  
-  return { note: names[idx], octave };  // Returns { note: "C", octave: 4 }
+    
+    // Find the closest note by comparing to actual frequencies
+    let minDiff = Infinity;
+    let bestNote = null;
+    let bestOctave = null;
+    
+    // Check a reasonable range of octaves (0-8 covers most musical instruments)
+    for (let octave = 0; octave <= 8; octave++) {
+        for (let noteIdx = 0; noteIdx < 12; noteIdx++) {
+            // Calculate frequency for this note
+            // A4 is at index 9, octave 4
+            const semisFromA4 = (octave - 4) * 12 + (noteIdx - 9);
+            const noteFreq = A4 * Math.pow(2, semisFromA4 / 12);
+            const diff = Math.abs(freq - noteFreq);
+            
+            if (diff < minDiff) {
+                minDiff = diff;
+                bestNote = names[noteIdx];
+                bestOctave = octave;
+            }
+        }
+    }
+    
+    return { note: bestNote, octave: bestOctave };
 }
 
 // Convert frequency to note name (without octave) - kept for backward compatibility
@@ -40,7 +59,7 @@ function frequencyToNoteName(freq) {
 function detectString(rawFreq) {
     if (!rawFreq) return null;
     
-    //correct for my micriohone buas (about -9%)
+    //correct for my microphone bias (about -9%)
     const freq = rawFreq / 0.915;
     // Try raw frequency and harmonics
     const candidates = [freq, freq / 2, freq / 4];
@@ -49,21 +68,20 @@ function detectString(rawFreq) {
       let best = null;
       let minDiff = Infinity;
 
-    
-    for (const [stringName, baseFreq] of Object.entries(GUITAR_STRING_FREQS)) {
-      const diff = Math.abs(freq - baseFreq);
-      if (diff < minDiff) {
-        minDiff = diff;
-        best = stringName;
+      for (const [stringName, baseFreq] of Object.entries(GUITAR_STRING_FREQS)) {
+        const diff = Math.abs(f - baseFreq);
+        if (diff < minDiff) {
+          minDiff = diff;
+          best = stringName;
+        }
+      }
+      
+      // Only return if within reasonable range (within 120 cents = 1 semitone)
+      const cents = 1200 * Math.log2(f / GUITAR_STRING_FREQS[best]);
+      if (Math.abs(cents) < 120) {
+        return best;
       }
     }
-    
-    // Only return if within reasonable range (within 50 cents)
-    const cents = 1200 * Math.log2(freq / GUITAR_STRING_FREQS[best]);
-    if (Math.abs(cents) < 120) {
-      return best;
-    }
-  }
     
     return null;
   }
@@ -111,6 +129,7 @@ export function useGuitarDetection(expectedChord, onStringDetected) {
     const [isChordCorrect, setIsChordCorrect] = useState(null);  // null, true, or false
     const [essentia, setEssentia] = useState(null);
     const [error, setError] = useState(null);
+    const [timeRemaining, setTimeRemaining] = useState(5);  // Countdown timer for current string
     
     const audioContextRef = useRef(null);
     const analyserRef = useRef(null);
@@ -122,6 +141,9 @@ export function useGuitarDetection(expectedChord, onStringDetected) {
     const rafRef = useRef(null);
     const silenceStartTimeRef = useRef(null);
     const currentStringIndexRef = useRef(0);  // Add ref to track current string index
+    const countdownIntervalRef = useRef(null);  // Ref for countdown interval
+    const canAdvanceRef = useRef(false);  // Whether we can advance to next string
+    const countdownStartTimeRef = useRef(null);  // When the current countdown started
   
     // Initialize Essentia.js
     useEffect(() => {
@@ -219,18 +241,38 @@ export function useGuitarDetection(expectedChord, onStringDetected) {
       lastOnsetRef.current = now;
 
       const vector = essentia.arrayToVector(buffer);
-      const { pitch, pitchConfidence } = essentia.PitchYin(vector);
+      const pitchResult = essentia.PitchYin(vector);
+      const { pitch, pitchConfidence } = pitchResult;
+      
+      // Debug: log pitch detection results
+      console.log("=== PITCH DETECTION ===");
+      console.log("Raw pitch (Hz):", pitch);
+      console.log("Pitch confidence:", pitchConfidence);
+      console.log("RMS:", rms);
 
       if (pitch > 0 && pitchConfidence > 0.6) {
-        // Get note with octave
-        const detectedNoteObj = frequencyToNote(pitch);
-        if (!detectedNoteObj) return;
+        // Apply microphone bias correction (about -9%, so divide by 0.915)
+        const correctedPitch = pitch / 0.915;
+        
+        // Get note with octave using corrected pitch
+        const detectedNoteObj = frequencyToNote(correctedPitch);
+        if (!detectedNoteObj) {
+          console.log("Could not convert frequency to note");
+          return;
+        }
         
         const { note: detectedNote, octave: detectedOctave } = detectedNoteObj;
         const noteName = detectedNote; // For backward compatibility
-        const closestString = detectString(pitch);
-        //debugging:
-        console.log("Detected pitch:", pitch, "note:", detectedNote, "octave:", detectedOctave, "closest string:", closestString, "current index:", currentIndex);
+        const closestString = detectString(pitch); // detectString applies correction internally
+        
+        // Debug: log detected note information
+        console.log("Corrected pitch (Hz):", correctedPitch);
+        console.log("Detected note:", detectedNote);
+        console.log("Detected octave:", detectedOctave);
+        console.log("Full note:", detectedNote + detectedOctave);
+        console.log("Closest string:", closestString);
+        console.log("Current expected string index:", currentIndex);
+        console.log("======================");
 
         const expectedString = GUITAR_STRINGS[currentIndex];
         const expectedNotes = CHORD_NOTES[expectedChord];
@@ -277,7 +319,7 @@ export function useGuitarDetection(expectedChord, onStringDetected) {
           onStringDetected({
             stringName: expectedString,
             noteName: noteName,
-            detectedFreq: pitch,
+            detectedFreq: correctedPitch, // Use corrected frequency
             isCorrectString,
             isCorrectNote,
             fret,
@@ -296,15 +338,68 @@ export function useGuitarDetection(expectedChord, onStringDetected) {
           [expectedString]: noteName,
         }));
 
-        // Advance even if wrong - update both ref and state
-        const nextIndex = currentIndex + 1;
-        currentStringIndexRef.current = nextIndex;
-        setCurrentStringIndex(nextIndex);
+        // Don't advance automatically - wait for countdown timer
+        // The countdown timer will handle advancement
       }
     }
 
     rafRef.current = requestAnimationFrame(analyze);
   };
+
+  // Effect to start countdown when string index changes (and we're recording)
+  useEffect(() => {
+    // Clear any existing countdown first
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = null;
+    }
+    
+    // Only start countdown if we're recording and haven't finished all strings
+    if (isRecording && currentStringIndex < 6) {
+      // Make sure ref is in sync with state
+      currentStringIndexRef.current = currentStringIndex;
+      console.log("Starting countdown for string index:", currentStringIndex, "string:", GUITAR_STRINGS[currentStringIndex]);
+      
+      // Reset countdown to 5 seconds
+      setTimeRemaining(5);
+      canAdvanceRef.current = false;
+      countdownStartTimeRef.current = Date.now();
+      
+      // Start countdown interval - update every 100ms for smoother display
+      countdownIntervalRef.current = setInterval(() => {
+        const elapsed = (Date.now() - countdownStartTimeRef.current) / 1000;
+        const remaining = Math.max(0, Math.ceil(5 - elapsed));
+        
+        setTimeRemaining(remaining);
+        
+        if (remaining <= 0) {
+          // Countdown finished - allow advancement
+          clearInterval(countdownIntervalRef.current);
+          countdownIntervalRef.current = null;
+          canAdvanceRef.current = true;
+          
+          // Advance to next string - use the ref to get the most current value
+          const currentIndex = currentStringIndexRef.current;
+          console.log("Countdown finished for string index:", currentIndex, "string:", GUITAR_STRINGS[currentIndex]);
+          if (currentIndex < 6) {
+            const nextIndex = currentIndex + 1;
+            console.log("Advancing to string index:", nextIndex, "string:", GUITAR_STRINGS[nextIndex]);
+            currentStringIndexRef.current = nextIndex;
+            setCurrentStringIndex(nextIndex);
+            // The useEffect will trigger again with the new currentStringIndex
+          }
+        }
+      }, 100); // Update every 100ms for smoother countdown
+    }
+    
+    // Cleanup on unmount or when recording stops or string changes
+    return () => {
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
+        countdownIntervalRef.current = null;
+      }
+    };
+  }, [isRecording, currentStringIndex]);
 
   const startRecording = async () => {
     try {
@@ -313,6 +408,9 @@ export function useGuitarDetection(expectedChord, onStringDetected) {
       setIsChordCorrect(null);
       setCurrentStringIndex(0);
       currentStringIndexRef.current = 0; // Initialize ref
+      setTimeRemaining(5);
+      canAdvanceRef.current = false;
+      countdownStartTimeRef.current = null;
 
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
@@ -328,6 +426,9 @@ export function useGuitarDetection(expectedChord, onStringDetected) {
       src.connect(analyser);
 
       setIsRecording(true);
+      
+      // Countdown will start automatically via useEffect when isRecording becomes true
+      
       analyze();
 
     } catch (err) {
@@ -338,6 +439,12 @@ export function useGuitarDetection(expectedChord, onStringDetected) {
   const stopRecording = () => {
     cancelAnimationFrame(rafRef.current);
 
+    // Clear countdown interval
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = null;
+    }
+
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((t) => t.stop());
     }
@@ -346,6 +453,8 @@ export function useGuitarDetection(expectedChord, onStringDetected) {
     }
 
     setIsRecording(false);
+    setTimeRemaining(5);
+    canAdvanceRef.current = false;
   };
 
   useEffect(() => stopRecording, []);
@@ -357,13 +466,21 @@ export function useGuitarDetection(expectedChord, onStringDetected) {
     recordedNotes,
     isChordCorrect,
     error,
+    timeRemaining,
     startRecording,
     stopRecording,
     reset: () => {
+      // Clear countdown interval
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
+        countdownIntervalRef.current = null;
+      }
       setCurrentStringIndex(0);
       currentStringIndexRef.current = 0;
       setRecordedNotes({});
       setIsChordCorrect(null);
+      setTimeRemaining(5);
+      canAdvanceRef.current = false;
     }
   };
 }
@@ -435,12 +552,12 @@ export function useGuitarDetection(expectedChord, onStringDetected) {
         lastOnsetTimeRef.current = currentTime;
         silenceStartTimeRef.current = null;
         
-        // Detect pitch using PitchYin - pass as regular array
+        // Detect pitch using PitchYinFFT - pass as regular array
         const audioVector = essentiaRef.current.arrayToVector(dataArray);
-        const pitchDetection = essentiaRef.current.PitchYin(audioVector);
+        const pitchDetection = essentiaRef.current.PitchYinFFT(audioVector);
         //TODO: delete below two lines
-        console.log("Running PitchYin...");
-        console.log("PitchYin result:", pitchDetection);
+        console.log("Running PitchYinFFT...");
+        console.log("PitchYinFFT result:", pitchDetection);
         
         if (pitchDetection && pitchDetection.pitch > 0) {
           const detectedFreq = pitchDetection.pitch;

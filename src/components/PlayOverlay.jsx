@@ -1,13 +1,19 @@
 import React from "react";
 import {xyFor} from "./GuitarTab";
+import { CHORD_SHAPES } from "../constants";
 
 const STRING_ORDER = ["E_low", "A", "D", "G", "B", "E_high"];
 
 
-export default function PlayOverlay({ stringResults }) {
+export default function PlayOverlay({ stringResults, chordName, isChordCorrect }) {
     console.log("PlayOverlay rendering with stringResults:", stringResults);
+    
+    // Get the correct chord shape if chord is incorrect
+    const correctChordShape = (isChordCorrect === false && chordName) ? CHORD_SHAPES[chordName] : null;
+    
     return (
       <g>
+        {/* Render user's played notes (red/green circles) */}
         {STRING_ORDER.map((stringName, idx) => {
           const result = stringResults[stringName];
           if (!result) return null;
@@ -46,6 +52,25 @@ export default function PlayOverlay({ stringResults }) {
             />
           );
         })}
+        
+        {/* Render empty circles for correct chord shape when user got it wrong */}
+        {correctChordShape && correctChordShape.dots && correctChordShape.dots
+          .filter(dot => dot.fret > 0) // Only show dots for fretted notes (not open/muted)
+          .map((dot, i) => {
+            const { x, y } = xyFor(dot.string, dot.fret);
+            return (
+              <circle
+                key={`correct-${dot.string}-${dot.fret}-${i}`}
+                cx={x}
+                cy={y}
+                r={18}
+                fill="none"
+                stroke="black"
+                strokeWidth="2"
+                opacity="0.6"
+              />
+            );
+          })}
       </g>
     );
   }

@@ -23,7 +23,7 @@ export function xyFor(stringIndex, fretIndex) {
   
 
 
-export default function GuitarTab({ width=458, height=574, thin=3, nut=15, children }) {
+export default function GuitarTab({ width=458, height=574, thin=3, nut=15, children, currentStringIndex=null, isRecording=false }) {
   const innerW = TAB_VIEWBOX.w - (MARGINS.left + MARGINS.right);
   const innerH = TAB_VIEWBOX.h - (MARGINS.top + MARGINS.bottom);
   const x0 = MARGINS.left, x1 = MARGINS.left + innerW;
@@ -48,7 +48,23 @@ export default function GuitarTab({ width=458, height=574, thin=3, nut=15, child
       {/* vertical strings */}
       {Array.from({length: STRINGS}, (_, s) => {
         const x = x0 + stringGap * s;
-        return line({ key:`s${s}`, x1:x, y1:y0, x2:x, y2:y1, strokeWidth: thin });
+        // Highlight current string in yellow when recording
+        const isCurrentString = isRecording && currentStringIndex !== null && s === currentStringIndex;
+        const strokeColor = isCurrentString ? "yellow" : "black";
+        const strokeWidth = isCurrentString ? thin + 1 : thin; // Make highlighted string slightly thicker
+        return (
+          <line
+            key={`s${s}`}
+            x1={x}
+            y1={y0}
+            x2={x}
+            y2={y1}
+            strokeWidth={strokeWidth}
+            stroke={strokeColor}
+            fill="none"
+            vectorEffect="non-scaling-stroke"
+          />
+        );
       })}
 
       {children}

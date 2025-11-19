@@ -84,6 +84,7 @@ export default function PlayPage() {
     recordedNotes,
     isChordCorrect,
     error,
+    timeRemaining,
     startRecording,
     stopRecording,
     reset
@@ -107,15 +108,6 @@ export default function PlayPage() {
 
 
 
-  const stringLabels = {
-    'E_low': 'Low E (6th)',
-    'A': 'A (5th)',
-    'D': 'D (4th)',
-    'G': 'G (3rd)',
-    'B': 'B (2nd)',
-    'E_high': 'High E (1st)'
-  };
- 
   return (
     <div className="play-page">
       <h2>Play: {chordName}</h2>
@@ -124,11 +116,25 @@ export default function PlayPage() {
       <Link to={`/chord/${chordName}/learn`} className="learn-link"><img src={LearnArrow} alt="to Learn" className="learn-arrow"/></Link>
 
 
-      <GuitarTab width={460} height={525}>
-        <PlayOverlay stringResults={stringResults} />
+      <GuitarTab 
+        width={460} 
+        height={525}
+        currentStringIndex={currentStringIndex}
+        isRecording={isRecording}
+      >
+        <PlayOverlay 
+          stringResults={stringResults} 
+          chordName={chordName}
+          isChordCorrect={isChordCorrect}
+        />
       </GuitarTab>
  
-
+      {isRecording && currentStringIndex < 6 && (
+        <div className="countdown-timer">
+          <div className="countdown-number">{timeRemaining}</div>
+          <div className="countdown-label">seconds remaining</div>
+        </div>
+      )}
 
       <div className="recording-controls">
         {!isRecording ? (
@@ -159,37 +165,6 @@ export default function PlayPage() {
       </div>
       
       {error && <div className="error-message">{error}</div>}
-      
-      {isRecording && (
-        <div className="string-progress">
-          <h3>Play each string (low to high):</h3>
-          <div className="strings-display">
-            {['E_low', 'A', 'D', 'G', 'B', 'E_high'].map((str, idx) => (
-              <div 
-                key={str} 
-                className={`string-item ${
-                  idx < currentStringIndex ? 'completed' : 
-                  idx === currentStringIndex ? 'current' : 
-                  'pending'
-                }`}
-              >
-                <span className="string-label">{stringLabels[str]}</span>
-                {recordedNotes[str] && (
-                  <span className="detected-note">{recordedNotes[str]}</span>
-                )}
-                {stringErrors[str] && (
-                  <span className="error-note" style={{ color: 'red', fontSize: '0.9em', marginLeft: '10px' }}>
-                    {stringErrors[str]}
-                  </span>
-                )}
-                {idx === currentStringIndex && (
-                  <span className="play-indicator">← Play this string</span>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
       
       {isChordCorrect !== null && (
         <div className={`chord-result ${isChordCorrect ? 'correct' : 'incorrect'}`}>
