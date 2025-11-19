@@ -20,6 +20,60 @@ export const CHORD_NOTES = {
   'G7': ['G', 'B', 'D', 'F']
 };
 
+// Possible notes for each string at frets 0-5 (with octaves)
+// Format: { fret: number, note: string, octave: number }
+// Also includes enharmonic equivalents (e.g., F# = Gb, Bb = A#)
+export const STRING_NOTES = {
+  'E_low': [
+    { fret: 0, note: 'E', octave: 2, enharmonics: ['E'] },
+    { fret: 1, note: 'F', octave: 2, enharmonics: ['F', 'E#'] },
+    { fret: 2, note: 'F#', octave: 2, enharmonics: ['F#', 'Gb'] },
+    { fret: 3, note: 'G', octave: 2, enharmonics: ['G'] },
+    { fret: 4, note: 'G#', octave: 2, enharmonics: ['G#', 'Ab'] },
+    { fret: 5, note: 'A', octave: 2, enharmonics: ['A'] }
+  ],
+  'A': [
+    { fret: 0, note: 'A', octave: 2, enharmonics: ['A'] },
+    { fret: 1, note: 'A#', octave: 2, enharmonics: ['A#', 'Bb'] },
+    { fret: 2, note: 'B', octave: 2, enharmonics: ['B', 'Cb'] },
+    { fret: 3, note: 'C', octave: 3, enharmonics: ['C', 'B#'] },
+    { fret: 4, note: 'C#', octave: 3, enharmonics: ['C#', 'Db'] },
+    { fret: 5, note: 'D', octave: 3, enharmonics: ['D'] }
+  ],
+  'D': [
+    { fret: 0, note: 'D', octave: 3, enharmonics: ['D'] },
+    { fret: 1, note: 'D#', octave: 3, enharmonics: ['D#', 'Eb'] },
+    { fret: 2, note: 'E', octave: 3, enharmonics: ['E', 'Fb'] },
+    { fret: 3, note: 'F', octave: 3, enharmonics: ['F', 'E#'] },
+    { fret: 4, note: 'F#', octave: 3, enharmonics: ['F#', 'Gb'] },
+    { fret: 5, note: 'G', octave: 3, enharmonics: ['G'] }
+  ],
+  'G': [
+    { fret: 0, note: 'G', octave: 3, enharmonics: ['G'] },
+    { fret: 1, note: 'G#', octave: 3, enharmonics: ['G#', 'Ab'] },
+    { fret: 2, note: 'A', octave: 3, enharmonics: ['A'] },
+    { fret: 3, note: 'A#', octave: 3, enharmonics: ['A#', 'Bb'] },
+    { fret: 4, note: 'B', octave: 3, enharmonics: ['B', 'Cb'] },
+    { fret: 5, note: 'C', octave: 4, enharmonics: ['C', 'B#'] }
+  ],
+  'B': [
+    { fret: 0, note: 'B', octave: 3, enharmonics: ['B', 'Cb'] },
+    { fret: 1, note: 'C', octave: 4, enharmonics: ['C', 'B#'] },
+    { fret: 2, note: 'C#', octave: 4, enharmonics: ['C#', 'Db'] },
+    { fret: 3, note: 'D', octave: 4, enharmonics: ['D'] },
+    { fret: 4, note: 'D#', octave: 4, enharmonics: ['D#', 'Eb'] },
+    { fret: 5, note: 'E', octave: 4, enharmonics: ['E', 'Fb'] }
+  ],
+  'E_high': [
+    { fret: 0, note: 'E', octave: 4, enharmonics: ['E', 'Fb'] },
+    { fret: 1, note: 'F', octave: 4, enharmonics: ['F', 'E#'] },
+    { fret: 2, note: 'F#', octave: 4, enharmonics: ['F#', 'Gb'] },
+    { fret: 3, note: 'G', octave: 4, enharmonics: ['G'] },
+    { fret: 4, note: 'G#', octave: 4, enharmonics: ['G#', 'Ab'] },
+    { fret: 5, note: 'A', octave: 4, enharmonics: ['A'] }
+  ]
+};
+
 export const CHORD_SHAPES = {
   C: {
     dots: [

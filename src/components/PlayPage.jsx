@@ -6,7 +6,7 @@ import HomeArrow from '/Users/giselaroberts/comps-react-app/src/assets/HomeArrow
 import PlayArrow from '/Users/giselaroberts/comps-react-app/src/assets/PlayArrow.png';
 import LearnArrow from '/Users/giselaroberts/comps-react-app/src/assets/LearnArrow.png';
 import PlayOverlay from './PlayOverlay';
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 
 export default function PlayPage() {
@@ -22,20 +22,56 @@ export default function PlayPage() {
     E_high: null
   });
 
-  const handleStringDetected = (result) => {
-    const { stringName, detectedFreq, noteName, isCorrectString, isCorrectNote } = result;
+  const [stringErrors, setStringErrors] = useState({});
 
-    setStringResults(prev => ({
-      ...prev,
-      [stringName]: {
-        detectedFreq,
-        noteName,
-        isCorrectString,
-        isCorrectNote,
-        isOverallCorrect: isCorrectString && isCorrectNote
-      }
-    }));
-  };
+  const handleStringDetected = useCallback((result) => {
+    console.log("handleStringDetected called with:", result);
+    const { 
+      stringName, 
+      detectedFreq, 
+      noteName, 
+      isCorrectString, 
+      isCorrectNote, 
+      fret, 
+      detectedString,
+      isValidOnString,
+      errorMessage,
+      isOverallCorrect
+    } = result;
+
+    setStringResults(prev => {
+      const newResults = {
+        ...prev,
+        [stringName]: {
+          detectedFreq,
+          noteName,
+          isCorrectString,
+          isCorrectNote,
+          isOverallCorrect: isOverallCorrect !== undefined ? isOverallCorrect : (isCorrectString && isCorrectNote),
+          fret: fret || 0, // Store the fret number (0 = open string, or nut if invalid)
+          detectedString, // Store which string was actually detected
+          isValidOnString: isValidOnString !== undefined ? isValidOnString : true
+        }
+      };
+      console.log("Updated stringResults:", newResults);
+      return newResults;
+    });
+
+    // Store error message if present
+    if (errorMessage) {
+      setStringErrors(prev => ({
+        ...prev,
+        [stringName]: errorMessage
+      }));
+    } else {
+      // Clear error if note is valid
+      setStringErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[stringName];
+        return newErrors;
+      });
+    }
+  }, []);
   // ⭐ NEW CODE END
 
 
@@ -53,6 +89,21 @@ export default function PlayPage() {
     reset
   } = useGuitarDetection(chordName, handleStringDetected); 
   // ⭐ ← The NEW second argument
+
+  // Reset stringResults and errors when starting recording
+  useEffect(() => {
+    if (isRecording) {
+      setStringResults({
+        E_low: null,
+        A: null,
+        D: null,
+        G: null,
+        B: null,
+        E_high: null
+      });
+      setStringErrors({});
+    }
+  }, [isRecording]);
 
 
 
@@ -90,7 +141,18 @@ export default function PlayPage() {
           </button>
         )}
         {!isRecording && Object.keys(recordedNotes).length > 0 && (
-          <button onClick={reset} className="reset-button">
+          <button onClick={() => {
+            reset();
+            setStringResults({
+              E_low: null,
+              A: null,
+              D: null,
+              G: null,
+              B: null,
+              E_high: null
+            });
+            setStringErrors({});
+          }} className="reset-button">
             Reset
           </button>
         )}
@@ -114,6 +176,11 @@ export default function PlayPage() {
                 <span className="string-label">{stringLabels[str]}</span>
                 {recordedNotes[str] && (
                   <span className="detected-note">{recordedNotes[str]}</span>
+                )}
+                {stringErrors[str] && (
+                  <span className="error-note" style={{ color: 'red', fontSize: '0.9em', marginLeft: '10px' }}>
+                    {stringErrors[str]}
+                  </span>
                 )}
                 {idx === currentStringIndex && (
                   <span className="play-indicator">← Play this string</span>

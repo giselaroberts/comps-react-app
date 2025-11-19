@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { CHORD_NOTES } from '../constants';
+import { CHORD_NOTES, STRING_NOTES } from '../constants';
 
 // Dynamic import for Essentia to handle WASM properly
 let Essentia = null;
@@ -17,16 +17,23 @@ const GUITAR_STRING_FREQS = {
     E_high: 329.63   // E4
   };
 
-// Convert frequency to note name (without octave)
-function frequencyToNoteName(freq) {
+// Convert frequency to note name and octave
+function frequencyToNote(freq) {
     if(!freq) return null;
     const A4 = 440;
     const names = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
         
     const semis = Math.round(12 * Math.log2(freq / A4));
+    const octave = 4 + Math.floor(semis / 12);
     const idx = ((semis % 12) + 12) % 12;
   
-  return names[idx];  // Returns just "C", "E", "G#", etc. (no octave)
+  return { note: names[idx], octave };  // Returns { note: "C", octave: 4 }
+}
+
+// Convert frequency to note name (without octave) - kept for backward compatibility
+function frequencyToNoteName(freq) {
+    const result = frequencyToNote(freq);
+    return result ? result.note : null;
 }
 
 // Get which string position a frequency matches
@@ -60,6 +67,41 @@ function detectString(rawFreq) {
     
     return null;
   }
+
+// Validate detected note against expected string and find matching fret
+// Returns { fret: number, isValid: boolean, errorMessage: string | null }
+function validateNoteOnString(detectedNote, detectedOctave, expectedString) {
+  if (!detectedNote || !expectedString || !STRING_NOTES[expectedString]) {
+    return { fret: 0, isValid: false, errorMessage: 'Invalid detection' };
+  }
+  
+  const possibleNotes = STRING_NOTES[expectedString];
+  
+  // Check if the detected note (with octave) matches any possible note on this string
+  // Also check enharmonic equivalents
+  for (const stringNote of possibleNotes) {
+    // Check if note name matches (including enharmonics) and octave matches
+    const noteMatches = stringNote.enharmonics.some(enh => 
+      enh.toLowerCase() === detectedNote.toLowerCase()
+    );
+    const octaveMatches = stringNote.octave === detectedOctave;
+    
+    if (noteMatches && octaveMatches) {
+      return { 
+        fret: stringNote.fret, 
+        isValid: true, 
+        errorMessage: null 
+      };
+    }
+  }
+  
+  // Note not found on this string - return error
+  return { 
+    fret: 0, 
+    isValid: false, 
+    errorMessage: `Note ${detectedNote}${detectedOctave} is not possible on ${expectedString} string (frets 0-5)` 
+  };
+}
 
 
 export function useGuitarDetection(expectedChord, onStringDetected) {
@@ -142,8 +184,24 @@ export function useGuitarDetection(expectedChord, onStringDetected) {
       const analyze = () => {
         const analyser = analyserRef.current;
         const essentia = essentiaRef.current;
+        const currentIndex = currentStringIndexRef.current; // Use ref to get latest value
 
-        if (!analyser || !essentia || currentStringIndex >= 6) return;
+        if (!analyser || !essentia || currentIndex >= 6) {
+          // If we've finished all strings, check the chord
+          if (currentIndex >= 6) {
+            setRecordedNotes((prev) => {
+              const expectedNotes = CHORD_NOTES[expectedChord];
+              if (expectedNotes) {
+                const allCorrect = Object.values(prev).every((n) =>
+                  expectedNotes.includes(n)
+                );
+                setIsChordCorrect(allCorrect);
+              }
+              return prev;
+            });
+          }
+          return;
+        }
 
         const buffer = new Float32Array(analyser.frequencyBinCount);
         analyser.getFloatTimeDomainData(buffer);
@@ -164,43 +222,84 @@ export function useGuitarDetection(expectedChord, onStringDetected) {
       const { pitch, pitchConfidence } = essentia.PitchYin(vector);
 
       if (pitch > 0 && pitchConfidence > 0.6) {
-        const note = frequencyToNoteName(pitch);
+        // Get note with octave
+        const detectedNoteObj = frequencyToNote(pitch);
+        if (!detectedNoteObj) return;
+        
+        const { note: detectedNote, octave: detectedOctave } = detectedNoteObj;
+        const noteName = detectedNote; // For backward compatibility
         const closestString = detectString(pitch);
         //debugging:
-        console.log("Detected pitch:", pitch, "closest string:", closestString);
+        console.log("Detected pitch:", pitch, "note:", detectedNote, "octave:", detectedOctave, "closest string:", closestString, "current index:", currentIndex);
 
-
-        const expectedString = GUITAR_STRINGS[currentStringIndex];
+        const expectedString = GUITAR_STRINGS[currentIndex];
         const expectedNotes = CHORD_NOTES[expectedChord];
 
+        // Validate note against expected string
+        const validation = validateNoteOnString(detectedNote, detectedOctave, expectedString);
+        const fret = validation.fret;
+        const isValidOnString = validation.isValid;
+        const errorMessage = validation.errorMessage;
+
+        // Check if note is correct for the chord (note name only, no octave)
+        const isCorrectNote = expectedNotes && expectedNotes.some(expectedNote => {
+          // Check if detected note matches expected note (including enharmonics)
+          // For example, Bb should match A# in chord notes
+          const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+          const enharmonicMap = {
+            'Db': 'C#', 'Eb': 'D#', 'Gb': 'F#', 'Ab': 'G#', 'Bb': 'A#',
+            'Cb': 'B', 'E#': 'F', 'Fb': 'E', 'B#': 'C'
+          };
+          
+          const normalizedDetected = enharmonicMap[detectedNote] || detectedNote;
+          const normalizedExpected = enharmonicMap[expectedNote] || expectedNote;
+          
+          return normalizedDetected === normalizedExpected || detectedNote === expectedNote;
+        });
+
         const isCorrectString = closestString === expectedString;
-        const isCorrectNote = expectedNotes.includes(note);
+        const isOverallCorrect = isValidOnString && isCorrectNote;
 
         // ➜ Send result back to PlayPage
-        onStringDetected({
-          stringName: expectedString,
-          noteName: note,
-          detectedFreq: pitch,
-          isCorrectString,
-          isCorrectNote,
-        });
+        if (onStringDetected && typeof onStringDetected === 'function') {
+          console.log("Calling onStringDetected with:", {
+            stringName: expectedString,
+            noteName: noteName,
+            detectedFreq: pitch,
+            isCorrectString,
+            isCorrectNote,
+            fret,
+            detectedString: closestString,
+            isValidOnString,
+            errorMessage,
+            isOverallCorrect,
+          });
+          onStringDetected({
+            stringName: expectedString,
+            noteName: noteName,
+            detectedFreq: pitch,
+            isCorrectString,
+            isCorrectNote,
+            fret,
+            detectedString: closestString,
+            isValidOnString,
+            errorMessage,
+            isOverallCorrect,
+          });
+        } else {
+          console.warn("onStringDetected is not a function:", onStringDetected);
+        }
 
         // Save for summary text
         setRecordedNotes((prev) => ({
           ...prev,
-          [expectedString]: note,
+          [expectedString]: noteName,
         }));
 
-        // Advance even if wrong
-        setCurrentStringIndex((i) => i + 1);
-
-        // Check chord when finished
-        if (currentStringIndex + 1 === 6) {
-          const allCorrect = Object.values(recordedNotes).every((n) =>
-            expectedNotes.includes(n)
-          );
-          setIsChordCorrect(allCorrect);
-        }
+        // Advance even if wrong - update both ref and state
+        const nextIndex = currentIndex + 1;
+        currentStringIndexRef.current = nextIndex;
+        setCurrentStringIndex(nextIndex);
       }
     }
 
@@ -213,6 +312,7 @@ export function useGuitarDetection(expectedChord, onStringDetected) {
       setRecordedNotes({});
       setIsChordCorrect(null);
       setCurrentStringIndex(0);
+      currentStringIndexRef.current = 0; // Initialize ref
 
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
@@ -253,11 +353,18 @@ export function useGuitarDetection(expectedChord, onStringDetected) {
   return {
     isRecording,
     currentStringIndex,
+    currentString: GUITAR_STRINGS[currentStringIndex] || null,
     recordedNotes,
     isChordCorrect,
     error,
     startRecording,
     stopRecording,
+    reset: () => {
+      setCurrentStringIndex(0);
+      currentStringIndexRef.current = 0;
+      setRecordedNotes({});
+      setIsChordCorrect(null);
+    }
   };
 }
 /*
