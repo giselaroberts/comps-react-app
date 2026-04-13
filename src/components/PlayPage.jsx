@@ -2,9 +2,9 @@ import { Link, useParams } from 'react-router-dom';
 import { useGuitarDetection } from '../hooks/useGuitarDetection';
 import './PlayPage.css';
 import GuitarTab from './GuitarTab';
-import HomeArrow from '/Users/giselaroberts/comps-react-app/src/assets/HomeArrow.png';
-import PlayArrow from '/Users/giselaroberts/comps-react-app/src/assets/PlayArrow.png';
-import LearnArrow from '/Users/giselaroberts/comps-react-app/src/assets/LearnArrow.png';
+import HomeArrow from '../assets/HomeArrow.png';
+import PlayArrow from '../assets/PlayArrow.png';
+import LearnArrow from '../assets/LearnArrow.png';
 import PlayOverlay from './PlayOverlay';
 import { useState, useEffect, useCallback } from "react";
 

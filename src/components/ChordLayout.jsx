@@ -1,8 +1,8 @@
 import { Link, Outlet, useParams, useLocation } from 'react-router-dom';
 import './ChordLayout.css';
-import HomeArrow from '/Users/giselaroberts/comps-react-app/src/assets/HomeArrow.png';
-import PlayArrow from '/Users/giselaroberts/comps-react-app/src/assets/PlayArrow.png';
-import LearnArrow from '/Users/giselaroberts/comps-react-app/src/assets/LearnArrow.png';
+import HomeArrow from '../assets/HomeArrow.png';
+import PlayArrow from '../assets/PlayArrow.png';
+import LearnArrow from '../assets/LearnArrow.png';
 
 export default function ChordLayout() {
   const { chordName } = useParams();
