@@ -8,7 +8,7 @@ import PlayPage from './components/PlayPage';
 
 function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename="/comps-react-app">
       <Routes>
         <Route path="/" element={<Home />} />
         {/* Nested routes: parent route with child routes */}
